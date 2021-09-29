@@ -57,6 +57,9 @@ static atomic<bool> closeSignal(false);
 static atomic<bool> premiumStop(false);
 static atomic<double> openSizeMin(0);
 static atomic<double> closeSizeMin(0);
+static atomic<bool> ftxWsStart(false);
+static atomic<bool> binanceWsStart(false);
+
 
 static bool binanceDualSide = false;
 
@@ -221,6 +224,7 @@ void ws_ticks() {
 			spotBidPrice = j["data"]["bid"].get<double>();
 			spotAskSize = j["data"]["askSize"].get<double>();
 			spotBidSize = j["data"]["bidSize"].get<double>();
+			ftxWsStart = true;
 		}
 		});
 	wsClient.connect();
@@ -246,6 +250,7 @@ void bws_ticks() {
 			futuresAskPrice = atof(j["a"].get<string>().c_str());
 			futuresBidSize = atof(j["B"].get<string>().c_str());
 			futuresAskSize = atof(j["A"].get<string>().c_str());
+			binanceWsStart = true;
 		}
 
 
@@ -255,6 +260,10 @@ void bws_ticks() {
 }
 
 void get_premium() {
+	while (true) {
+		if (ftxWsStart && binanceWsStart)
+			break;
+	}
 
 	while (true) {
 		if (premiumStop)
@@ -439,7 +448,7 @@ bool get_dual() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.1";
+	string ver = "v0.1.1";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
