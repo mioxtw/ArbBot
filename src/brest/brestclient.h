@@ -6,12 +6,12 @@
 
 using json = nlohmann::json;
 
-namespace ftx {
+namespace binance {
 
-class RESTClient
+class BRESTClient
 {
   public:
-    RESTClient();
+    BRESTClient();
 
     void set_apikey(std::string apikey, std::string apisecret, std::string subaccountname);
 
@@ -27,35 +27,33 @@ class RESTClient
 
     json get_open_orders();
 
-    json get_orders(long long id);
+    json get_orders(std::string market, long long id);
 
     json place_order(const std::string market,
                      const std::string side,
                      double price,
                      double size,
-                     bool ioc = false,
-                     bool post_only = false,
-                     bool reduce_only = false);
+                     const std::string positionSide);
 
     // Market order overload
     json place_order(const std::string market,
                      const std::string side,
                      double size,
-                     bool ioc = false,
-                     bool post_only = false,
-                     bool reduce_only = false);
+                     const std::string positionSide);
 
-    json cancel_order(const std::string order_id);
+    json cancel_order(const std::string market, const std::string order_id);
 
     json get_fills();
 
     json get_balances();
 
-    json get_deposit_address(const std::string ticker);
+    json get_dual();
+
+    json get_position(string market);
 
   private:
     utilrest::HTTPSession http_client;
-    std::string uri = FTX;
+    std::string uri = BINANCE;
     std::string api_key = "";
     std::string api_secret = "";
     std::string subaccount_name = "";

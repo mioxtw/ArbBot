@@ -2,6 +2,8 @@
 #include <openssl/hmac.h>
 
 #include <string>
+#include <shared_mutex>
+static std::shared_mutex ws_mutex;
 
 namespace utilws::encoding {
 
@@ -29,6 +31,7 @@ std::string hmac(const std::string& secret,
                  std::string msg,
                  std::size_t signed_len)
 {
+    std::unique_lock<std::shared_mutex> hmacLock(ws_mutex);
     static HmacCtx hmac;
     char signed_msg[64];
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L

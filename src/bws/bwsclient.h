@@ -7,12 +7,12 @@
 
 using json = nlohmann::json;
 
-namespace ftx {
+namespace binance {
 
-class WSClient
+class BWSClient
 {
   public:
-    WSClient();
+    BWSClient();
 
     void on_message(utilws::WS::OnMessageCB cb);
     void connect();
@@ -29,7 +29,8 @@ class WSClient
     std::vector<std::pair<std::string, std::string>> subscriptions;
     utilws::WS::OnMessageCB message_cb;
     utilws::WS ws;
-    std::string uri = FTXWS;
+    std::string uri = BINANCEWS;
+    //std::string uri = "wss://stream.binance.com:9443/ws";
     std::string api_key = "";
     std::string api_secret = "";
     std::string subaccount_name = "";

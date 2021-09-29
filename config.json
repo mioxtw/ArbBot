@@ -1,0 +1,16 @@
+{
+  "ftx-api-key": "",
+  "ftx-api-secret": "",
+  "ftx-subaccount": "",
+  "ftx-busd-bsc-address": "",
+  "binance-api-key": "",
+  "binance-api-secret": "",
+  "binance-busd-bsc-address": "",
+  "hedge-coin": "FTT",
+  "ftx-spotMarketName": "FTT/USD",
+  "binance-futuresMarketName": "FTTBUSD",
+  "openclose": "open",
+  "total-place-size": 10,
+  "batch-place-size": 1,
+  "premium": 0.002
+}

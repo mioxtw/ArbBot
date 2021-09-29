@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\brest\brestclient.cc" />
+    <ClCompile Include="src\bws\bwsclient.cc" />
     <ClCompile Include="src\example\arb.cc" />
     <ClCompile Include="src\rest\restclient.cc" />
     <ClCompile Include="src\utilrest\HTTP.cc" />
@@ -26,6 +28,8 @@
     <ClCompile Include="src\ws\wsclient.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\brest\brestclient.h" />
+    <ClInclude Include="src\bws\bwsclient.h" />
     <ClInclude Include="src\rest\restclient.h" />
     <ClInclude Include="src\utilrest\Encoding.h" />
     <ClInclude Include="src\utilrest\HTTP.h" />
@@ -94,7 +98,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\websocketpp-0.8.2;C:\Users\Mio\Desktop\FTX_Github\FTXSpotFuturesArbitrageBot-C\src;C:\boost_1_71_0;C:\openssl-1.1\x86\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\websocketpp-0.8.2;C:\Users\Mio\Desktop\FTX_Github\ArbBot\src;C:\boost_1_71_0;C:\openssl-1.1\x86\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\openssl-1.1\x86\lib;C:\boost_1_71_0\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

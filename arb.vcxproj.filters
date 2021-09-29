@@ -30,6 +30,12 @@
     <ClCompile Include="src\utilws\WS.cc">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="src\bws\bwsclient.cc">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="src\brest\brestclient.cc">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rest\restclient.h">
@@ -54,6 +60,12 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="src\utilrest\Time.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bws\bwsclient.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="src\brest\brestclient.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>

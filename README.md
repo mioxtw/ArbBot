@@ -20,10 +20,15 @@ make
 ## Usage
 ```bash
 --------------------------------------------------------
- [Master Mio] FTX Spot Futures Arbitrage Bot [C++] 
+ [Master Mio] ArbBot v0.1
+ Auther:  [Mio]
+ Website: [http://miobtc.com]
+ Email:   [miox.tw@gmail.com]
 --------------------------------------------------------
-Usage: ./arb [APIKey] [APISecret] [SubAccount] [open/close] [SpotMarketName] [Size] [Premium]
+
+Usage: ./arb [config json]
 Example:
-       ./arb ABCDEFGHIJ 123456789 SUBACCOUNT open  FTT/USD 10 0.001
-       ./arb ABCDEFGHIJ 123456789 SUBACCOUNT close FTT/USDT 10 -0.001
+       ./arb config.json
+       ./arb config2.json
+
 ```

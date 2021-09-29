@@ -3,7 +3,7 @@
 
 #include <string>
 #include <shared_mutex>
-static std::shared_mutex g_mutex;
+static std::shared_mutex rest_mutex;
 
 namespace utilrest::encoding {
 
@@ -31,7 +31,7 @@ std::string hmac(const std::string& secret,
                  std::string msg,
                  std::size_t signed_len)
 {
-    std::unique_lock<std::shared_mutex> hmacLock(g_mutex);
+    std::unique_lock<std::shared_mutex> hmacLock(rest_mutex);
     static HmacCtx hmac;
     char signed_msg[64];
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L

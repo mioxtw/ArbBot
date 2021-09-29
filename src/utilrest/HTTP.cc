@@ -7,16 +7,18 @@
 #include <boost/asio/ssl/error.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/beast/version.hpp>
+#include <iostream>
 
 namespace ssl = boost::asio::ssl;
 using tcp = net::ip::tcp;
 
+
 namespace utilrest {
 
-void HTTPSession::configure(std::string _uri,
-                            std::string _api_key,
-                            std::string _api_secret,
-                            std::string _subaccount_name)
+void HTTPSession::configure(string _uri,
+                            string _api_key,
+                            string _api_secret,
+                            string _subaccount_name)
 {
     uri = _uri;
     api_key = _api_key;
@@ -24,27 +26,51 @@ void HTTPSession::configure(std::string _uri,
     subaccount_name = _subaccount_name;
 }
 
-http::response<http::string_body> HTTPSession::get(const std::string target)
+http::response<http::string_body> HTTPSession::get(const string target, const string params)
 {
-    std::string endpoint = "/api/" + target;
-    http::request<http::string_body> req{http::verb::get, endpoint, 11};
+    string endpoint;
+    if (uri == FTX && params != "")
+        endpoint = target + "?" + params;
+    else
+        endpoint = target;
+
+    http::request<http::string_body> req{ http::verb::get, endpoint, 11 };
+
+    if (uri == BINANCE)
+        req.body() = params;
+
     return request(req);
 }
 
-http::response<http::string_body> HTTPSession::post(const std::string target,
-                                                    const std::string payload)
+http::response<http::string_body> HTTPSession::post(const string target,
+                                                    const json payload)
 {
-    std::string endpoint = "/api/" + target;
+    string endpoint = target;
     http::request<http::string_body> req{http::verb::post, endpoint, 11};
-    req.body() = payload;
+
+    if (uri == FTX)
+        req.body() = payload.dump();
+    else if (uri == BINANCE)
+        req.body() = URLSearchParams(payload);
+
     req.prepare_payload();
     return request(req);
 }
 
-http::response<http::string_body> HTTPSession::delete_(const std::string target)
+http::response<http::string_body> HTTPSession::delete_(const string target, const string params)
 {
-    std::string endpoint = "/api/" + target;
+    string endpoint;
+    if (uri == FTX && params != "")
+        endpoint = target + "?" + params;
+    else
+        endpoint = target;
+
     http::request<http::string_body> req{http::verb::delete_, endpoint, 11};
+
+    if (uri == BINANCE)
+        req.body() = params;
+
+
     return request(req);
 }
 
@@ -71,11 +97,21 @@ http::response<http::string_body> HTTPSession::request(
     net::connect(stream.next_layer(), results.begin(), results.end());
     stream.handshake(ssl::stream_base::client);
 
-    authenticate(req);
-
-    if (req.method() == http::verb::post) {
-        req.set(http::field::content_type, "application/json");
+    if (uri == FTX) {
+        authenticate(req);
+        if (req.method() == http::verb::post) {
+            req.set(http::field::content_type, "application/json");
+        }
     }
+    else if (uri == BINANCE) {
+        authenticateB(req);
+        if (req.method() == http::verb::post) {
+            req.set(http::field::content_type, "application/x-www-form-urlencoded");
+        }
+    }
+
+    req.set(http::field::content_length, req.body().size());
+
 
     http::write(stream, req);
     boost::beast::flat_buffer buffer;
@@ -96,24 +132,86 @@ http::response<http::string_body> HTTPSession::request(
 void HTTPSession::authenticate(http::request<http::string_body>& req)
 {
 
-    std::string method(req.method_string());
-    std::string path(req.target());
-    std::string body(req.body());
+    string method(req.method_string());
+    string path(req.target());
+    string body(req.body());
 
     long long ts = get_ms_timestamp(current_time()).count();
-    std::string data = std::to_string(ts) + method + path;
+    string data = to_string(ts) + method + path;
     if (!body.empty()) {
         data += body;
     }
-    std::string hmacced = encoding::hmac(std::string(api_secret), data, 32);
-    std::string sign =
+    string hmacced = encoding::hmac(string(api_secret), data, 32);
+    string sign =
       encoding::hmac_string_to_hex((unsigned char*)hmacced.c_str(), 32);
 
     req.set("FTX-KEY", api_key);
-    req.set("FTX-TS", std::to_string(ts));
+    req.set("FTX-TS", to_string(ts));
     req.set("FTX-SIGN", sign);
     if (!subaccount_name.empty()) {
         req.set("FTX-SUBACCOUNT", subaccount_name);
     }
 }
+
+void HTTPSession::authenticateB(http::request<http::string_body>& req)
+{
+
+    string method(req.method_string());
+    string path(req.target());
+    string body(req.body());
+
+
+    long long ts = get_ms_timestamp(current_time()).count();
+    string querystring;
+    if (!body.empty()) {
+        querystring.append(body+"&");
+    }
+    querystring.append("recvWindow=5000&timestamp=");
+    querystring.append(to_string(ts));
+
+
+
+    //string signature = hmac_sha256(secret_key.c_str(), querystring.c_str());
+    string hmacced = encoding::hmac(string(api_secret), querystring, 32);
+    string sign =
+        encoding::hmac_string_to_hex((unsigned char*)hmacced.c_str(), 32);
+
+    querystring.append("&signature=");
+    querystring.append(sign);
+
+
+
+
+    if (method == "POST" || method == "DELETE") {
+        req.body() = querystring;
+    }
+    else if (method == "GET") {
+        //cout << "target: "<<req.target() << "\n";
+        req.target(path + "?" + querystring);
+        //cout << "target: " << req.target() << "\n";
+        req.body() = "";
+    }
+    //cout << req.body() << "\n";
+    req.set("X-MBX-APIKEY", api_key);
+}
+
+
+string HTTPSession::URLSearchParams(json params) {
+    std::string usp;
+    int count = 0;
+    for (auto& key : params.items()) {
+        if (count > 0) {
+            usp += "&";
+        }
+        count++;
+        string k = key.key();
+        string v = key.value().dump();
+        v.erase(remove(v.begin(), v.end(), '\"'), v.end());
+        usp += k + "=" + v;
+    }
+    return usp;
+}
+
+
+
 }

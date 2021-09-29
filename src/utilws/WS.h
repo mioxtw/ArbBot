@@ -5,6 +5,10 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
 
+#define FTXWS "wss://ftx.com/ws/"
+#define BINANCEWS "wss://fstream.binance.com/ws/"
+
+
 using json = nlohmann::json;
 
 namespace utilws {
