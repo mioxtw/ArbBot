@@ -51,9 +51,6 @@ static double lastOpenPriceDiff = 0;
 static double lastOpenSizeMin = 0;
 static double lastClosePriceDiff = 0;
 static double lastCloseSizeMin = 0;
-static double sPos = 0;
-static double fPos = 0;
-
 
 static atomic<bool> openSignal(false);
 static atomic<bool> closeSignal(false);
@@ -369,13 +366,15 @@ int printLeverage() {
 int printPositions() {
 	string sName = coin;
 	string fName = coin + "-PERP";
+	//double sPos = 0;
+	//double fPos = 0;
 	auto ret = restClient.get_balances();
 	if (ret.contains("result")) {
 		if (!ret["result"].empty()) {
 			for (auto& key : ret["result"].items()) {
 				if (key.value()["coin"].get<string>() == coin) {
 					cout << "[FTX] Spot Positions:           [" << key.value()["coin"].get<string>() << "]:     [" << key.value()["total"].get<double>() << "]" << "                                                \n";
-					sPos = key.value()["total"].get<double>();
+					//sPos = key.value()["total"].get<double>();
 				}
 			}
 
@@ -424,12 +423,10 @@ int printPositions() {
 			if (binanceDualSide) {
 				if (key.value()["positionSide"].get<string>() == "SHORT") {
 					cout << "[Binance] Futures Positions:    [" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
-					fPos = atof(key.value()["positionAmt"].get<string>().c_str());
 				}
 			}
 			else {
 				cout << "[Binance] Futures Positions:    [" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
-				fPos = atof(key.value()["positionAmt"].get<string>().c_str());
 			}
 		}
 	}
@@ -451,7 +448,7 @@ bool get_dual() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.1.2";
+	string ver = "v0.1.1";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -518,15 +515,6 @@ int main(int argc, char* argv[])
 
 	if (printPositions() == -1)
 		return 0;
-
-	if (openclose == "close" && place_size > min(sPos, fPos)) {
-		place_size = min(sPos, fPos);
-		cout << "Size Changed:                 [" << place_size << "]\n";
-
-		if (place_size == 0)
-			return 0;
-	}
-
 
 	//open websocket thread
 	thread WSRecive;
