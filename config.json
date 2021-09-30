@@ -1,6 +1,5 @@
 ﻿{
-  "//comment1": "mode:1 A:FTX期貨/B:FTX現貨  mode:2 A:幣安期貨/B:FTX現貨  mode:3 A:幣安期貨/B:FTX期貨",
-  "//comment2": "A對B交易所正溢價，A做多B做空。反之，A對B交易所負溢價，A做空B做多",
+  "//comment1": "mode:1 FTX Futures/FTX Spot  mode:2 Binance Futures/FTX Spot  mode:3 Binance Futures/FTX Spot",
   "mode": 3,
   "ftx-futuresMarketName": "FTT-PERP",
   "ftx-spotMarketName": "FTT/USD",
