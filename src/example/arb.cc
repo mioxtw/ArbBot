@@ -332,10 +332,9 @@ int printBalance() {
 	//cout << ret.dump(4) << endl;
 	if (ret.contains("result")) {
 		if (!ret["result"].empty()) {
-			cout << "[FTX] Balance:" << "                                                                   \n";
 			for (auto& key : ret["result"].items()) {
 				if (key.value()["total"].get<double>() != 0)
-					cout << "                      [" << key.value()["coin"].get<string>() << "]:[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
+					cout << "[FTX] Balance:        [" << key.value()["coin"].get<string>() << "]:[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
 			}
 
 		}
@@ -349,6 +348,28 @@ int printBalance() {
 		cout << "[Error] " << ret.at("error").get<string>() << "                                                \n";
 		return -1;
 	}
+
+
+	if (mode == 2 || mode == 3) {
+		auto ret2 = binance_restClient.get_balances();
+		//cout << ret2.dump(4) << "\n";
+		if (ret2.contains("code")) {
+			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
+			return -1;
+		}
+		else {
+			for (auto& key : ret2.items()) {
+				if (key.value()["asset"].get<string>() == "BUSD") {
+					cout << "[Binance] Balance:    [" << key.value()["asset"].get<string>() << "]:[" << key.value()["balance"].get<string>() << "]" << "                                                \n";
+					cout << "[Binance] crossUnPnl: [" << key.value()["asset"].get<string>() << "]:[" << key.value()["crossUnPnl"].get<string>() << "]" << "                                                \n";
+				}
+			}
+		}
+	}
+
+
+
+
 
 	return 0;
 }
@@ -514,7 +535,6 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 	}
-
 
 	binance_restClient.set_apikey(binance_api_key, binance_api_secret, "");
 	ftx_restClient.set_apikey(ftx_api_key, ftx_api_secret, ftx_subaccount);
