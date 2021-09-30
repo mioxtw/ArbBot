@@ -244,6 +244,8 @@ void get_premium() {
 			break;
 		else if (mode == 3 && ftxFuturesWsStart && binanceFuturesWsStart)
 			break;
+
+		this_thread::sleep_for(0ms);
 	}
 
 	double openBidPrice = 0;
@@ -324,6 +326,7 @@ void get_premium() {
 			lastCloseSizeMin = closeSizeMin;
 		}
 
+		this_thread::sleep_for(0ms);
 	}
 }
 
@@ -467,7 +470,7 @@ bool get_dual() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.3";
+	string ver = "v0.2.4";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -703,7 +706,7 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 
-
+		this_thread::sleep_for(0ms);
 		//Avoid error:Do not send more then 2 orders total per 200ms
 		//this_thread::sleep_for(200ms);
 	}
