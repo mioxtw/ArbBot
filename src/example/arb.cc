@@ -468,7 +468,7 @@ bool get_dual() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2";
+	string ver = "v0.2.2";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -613,11 +613,11 @@ int main(int argc, char* argv[])
 					buyPrice = FTXGetOrderPrice(r2);
 				}
 				else if (mode == 2) {
-					shortPrice = BinanceGetOrderPrice(FTXFuturesMarketName, r1);
+					shortPrice = BinanceGetOrderPrice(BinanceFuturesMarketName, r1);
 					buyPrice = FTXGetOrderPrice(r2);
 				}
 				else if (mode == 3) {
-					shortPrice = BinanceGetOrderPrice(FTXFuturesMarketName, r1);
+					shortPrice = BinanceGetOrderPrice(BinanceFuturesMarketName, r1);
 					buyPrice = FTXGetOrderPrice(r2);
 				}
 
