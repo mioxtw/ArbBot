@@ -334,7 +334,7 @@ int printBalance() {
 		if (!ret["result"].empty()) {
 			for (auto& key : ret["result"].items()) {
 				if (key.value()["total"].get<double>() != 0)
-					cout << "[FTX] Balance:        [" << key.value()["coin"].get<string>() << "]:[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
+					cout << "[FTX] Balance:              [" << key.value()["coin"].get<string>() << "] :[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
 			}
 
 		}
@@ -360,8 +360,7 @@ int printBalance() {
 		else {
 			for (auto& key : ret2.items()) {
 				if (key.value()["asset"].get<string>() == "BUSD") {
-					cout << "[Binance] Balance:    [" << key.value()["asset"].get<string>() << "]:[" << key.value()["balance"].get<string>() << "]" << "                                                \n";
-					cout << "[Binance] crossUnPnl: [" << key.value()["asset"].get<string>() << "]:[" << key.value()["crossUnPnl"].get<string>() << "]" << "                                                \n";
+					cout << "[Binance] Balance:          [" << key.value()["asset"].get<string>() << "]:[" << atof(key.value()["balance"].get<string>().c_str()) + atof(key.value()["crossUnPnl"].get<string>().c_str()) << "]" << "                                                \n";
 				}
 			}
 		}
@@ -418,7 +417,7 @@ int printPositions() {
 		if (ret2.contains("result")) {
 			for (auto& key : ret2["result"]["positions"].items()) {
 				if (key.value()["future"].get<string>() == FTXFuturesMarketName) {
-					cout << "[FTX] Futures Positions:    [" << key.value()["future"].get<string>() << "]:[" << key.value()["netSize"].get<double>() << "]" << "                                                \n\n";
+					cout << "[FTX] Futures Positions:    [" << key.value()["future"].get<string>() << "]:[" << key.value()["netSize"].get<double>() << "]" << "                                                \n";
 					//fPos = key.value()["netSize"].get<double>();
 				}
 			}
@@ -440,12 +439,12 @@ int printPositions() {
 			for (auto& key : ret2.items()) {
 				if (binanceDualSide) {
 					if (key.value()["positionSide"].get<string>() == "SHORT") {
-						cout << "[Binance] Futures Positions:    [" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
+						cout << "[Binance] Futures Positions:[" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
 						//fPos = atof(key.value()["positionAmt"].get<string>().c_str());
 					}
 				}
 				else {
-					cout << "[Binance] Futures Positions:    [" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
+					cout << "[Binance] Futures Positions:[" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
 					//fPos = atof(key.value()["positionAmt"].get<string>().c_str());
 				}
 			}
@@ -468,7 +467,7 @@ bool get_dual() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.2";
+	string ver = "v0.2.3";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -505,7 +504,7 @@ int main(int argc, char* argv[])
 		cout << "Open/Close positions:       [" << openclose << "]\n";
 		cout << "Size:                       [" << place_size << "]\n";
 		cout << "Premium:                    [" << premium*100 << " %]\n";
-		cout << "Batch size limit:           [" << batch_size << "]\n\n";
+		cout << "Batch size limit:           [" << batch_size << "]\n";
 	}
 	else {
 		cout << "Usage: " << argv[0] << " [config json]" << "\n";
@@ -517,11 +516,11 @@ int main(int argc, char* argv[])
 
 
 	if (mode == 1)
-		cout << "Hedge Mode:                 [1] FTX Spot["<< FTXSpotMarketName<<"] / FTX Futures["<< FTXFuturesMarketName<<"]\n";
+		cout << "Hedge Mode:                 [1] FTX Spot["<< FTXSpotMarketName<<"] / FTX Futures["<< FTXFuturesMarketName<<"]\n\n";
 	else if (mode == 2)
-		cout << "Hedge Mode:                 [2] FTX Spot[" << FTXSpotMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n";
+		cout << "Hedge Mode:                 [2] FTX Spot[" << FTXSpotMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n\n";
 	else if (mode == 3)
-		cout << "Hedge Mode:                 [3] FTX Futures[" << FTXFuturesMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n";
+		cout << "Hedge Mode:                 [3] FTX Futures[" << FTXFuturesMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n\n";
 	else
 		return 0;
 
