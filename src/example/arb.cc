@@ -245,7 +245,7 @@ void get_premium() {
 		else if (mode == 3 && ftxFuturesWsStart && binanceFuturesWsStart)
 			break;
 
-		this_thread::sleep_for(0ms);
+		this_thread::sleep_for(chrono::nanoseconds(1));
 	}
 
 	double openBidPrice = 0;
@@ -326,7 +326,7 @@ void get_premium() {
 			lastCloseSizeMin = closeSizeMin;
 		}
 
-		this_thread::sleep_for(0ms);
+		this_thread::sleep_for(chrono::nanoseconds(1));
 	}
 }
 
@@ -706,7 +706,7 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 
-		this_thread::sleep_for(0ms);
+		this_thread::sleep_for(chrono::nanoseconds(1));
 		//Avoid error:Do not send more then 2 orders total per 200ms
 		//this_thread::sleep_for(200ms);
 	}
