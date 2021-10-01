@@ -549,10 +549,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	binance_restClient.set_apikey(binance_api_key, binance_api_secret, "");
+	ftx_restClient.set_apikey(ftx_api_key, ftx_api_secret, ftx_subaccount);
 
 	if (mode == 2 || mode == 3) {
-		ftx_restClient.set_apikey(ftx_api_key, ftx_api_secret, ftx_subaccount);
+		binance_restClient.set_apikey(binance_api_key, binance_api_secret, "");
 
 		binanceDualSide = get_dual();
 		if (binanceDualSide) {
