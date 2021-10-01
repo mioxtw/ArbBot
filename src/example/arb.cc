@@ -48,6 +48,15 @@ static atomic<double>  FTXSpotBidPrice(0);
 static atomic<double>  FTXSpotAskSize(0);
 static atomic<double>  FTXSpotBidSize(0);
 
+static double openBidPrice = 0;
+static double openAskPrice = 0;
+static double openBidSize = 0;
+static double openAskSize = 0;
+static double closeAskPrice = 0;
+static double closeBidPrice = 0;
+static double closeAskSize = 0;
+static double closeBidSize = 0;
+
 //static double sPos = 0;
 //static double fPos = 0;
 static double openPriceDiff = 0;
@@ -70,6 +79,12 @@ static atomic<bool> binanceFuturesWsStart(false);
 
 
 static bool binanceDualSide = false;
+static double binanceMinOrderSize = 0;
+
+static mutex m1;
+static mutex m2;
+static condition_variable cond_var1;
+static condition_variable cond_var2;
 
 long long BinanceShortFutures(double size) {
 	long long id = 0;
@@ -201,6 +216,7 @@ void ftx_ws_ticks() {
 			FTXFuturesBidSize = j.at("data").at("bidSize").get<double>();
 			FTXFuturesAskSize = j.at("data").at("askSize").get<double>();
 			ftxFuturesWsStart = true;
+			//cond_var2.notify_all();
 		} 
 		else if (j["type"].get<string>() == "update" && j["market"].get<string>() == FTXSpotMarketName) {
 			FTXSpotAskPrice = j["data"]["ask"].get<double>();
@@ -208,6 +224,7 @@ void ftx_ws_ticks() {
 			FTXSpotAskSize = j["data"]["askSize"].get<double>();
 			FTXSpotBidSize = j["data"]["bidSize"].get<double>();
 			ftxSpotWsStart = true;
+			//cond_var2.notify_all();
 		}
 		});
 	ftx_wsClient.connect();
@@ -228,6 +245,7 @@ void binance_ws_ticks() {
 			BinanceFuturesBidSize = atof(j["B"].get<string>().c_str());
 			BinanceFuturesAskSize = atof(j["A"].get<string>().c_str());
 			binanceFuturesWsStart = true;
+			cond_var2.notify_all();
 		}
 
 
@@ -237,6 +255,7 @@ void binance_ws_ticks() {
 }
 
 void get_premium() {
+#if 1
 	while (true) {
 		if (mode == 1 && ftxSpotWsStart && ftxFuturesWsStart)
 			break;
@@ -244,23 +263,24 @@ void get_premium() {
 			break;
 		else if (mode == 3 && ftxFuturesWsStart && binanceFuturesWsStart)
 			break;
-
 		this_thread::sleep_for(chrono::nanoseconds(1));
 	}
-
-	double openBidPrice = 0;
-	double openAskPrice = 0;
-	double openBidSize = 0;
-	double openAskSize = 0;
-	double closeAskPrice = 0;
-	double closeBidPrice = 0;
-	double closeAskSize = 0;
-	double closeBidSize = 0;
+#else
+	{
+		std::unique_lock<std::mutex> lock(m2);
+		cond_var2.wait(lock, [] {
+			bool con1 = mode == 1 && ftxSpotWsStart && ftxFuturesWsStart;
+			bool con2 = mode == 2 && ftxSpotWsStart && binanceFuturesWsStart;
+			bool con3 = mode == 3 && ftxFuturesWsStart && binanceFuturesWsStart;
+			return con1 || con2 || con3;
+			});
+	}
+#endif
 
 	while (true) {
 		if (premiumStop)
 			break;
-
+#if 1
 		if (mode == 1) {
 			openBidPrice = FTXFuturesBidPrice;
 			openAskPrice = FTXSpotAskPrice;
@@ -297,9 +317,63 @@ void get_premium() {
 		openSizeMin = min(openBidSize, openAskSize);
 		closeSizeMin = min(closeAskSize, closeBidSize);
 
+#else
+		{
+			std::unique_lock<std::mutex> lock(m2);
+			cond_var2.wait(lock, [] {
+
+				if (mode == 1) {
+					openBidPrice = FTXFuturesBidPrice;
+					openAskPrice = FTXSpotAskPrice;
+					openBidSize = FTXFuturesBidSize;
+					openAskSize = FTXSpotAskSize;
+					closeAskPrice = FTXFuturesAskPrice;
+					closeBidPrice = FTXSpotBidPrice;
+					closeAskSize = FTXFuturesAskSize;
+					closeBidSize = FTXSpotBidSize;
+				}
+				else if (mode == 2) {
+					openBidPrice = BinanceFuturesBidPrice;
+					openAskPrice = FTXSpotAskPrice;
+					openBidSize = BinanceFuturesBidSize;
+					openAskSize = FTXSpotAskSize;
+					closeAskPrice = BinanceFuturesAskPrice;
+					closeBidPrice = FTXSpotBidPrice;
+					closeAskSize = BinanceFuturesAskSize;
+					closeBidSize = FTXSpotBidSize;
+				}
+				else if (mode == 3) {
+					openBidPrice = BinanceFuturesBidPrice;
+					openAskPrice = FTXFuturesAskPrice;
+					openBidSize = BinanceFuturesBidSize;
+					openAskSize = FTXFuturesAskSize;
+					closeAskPrice = BinanceFuturesAskPrice;
+					closeBidPrice = FTXFuturesBidPrice;
+					closeAskSize = BinanceFuturesAskSize;
+					closeBidSize = FTXFuturesBidSize;
+				}
+
+				openPriceDiff = openBidPrice - openAskPrice;
+				closePriceDiff = closeAskPrice - closeBidPrice;
+				openSizeMin = min(openBidSize, openAskSize);
+				closeSizeMin = min(closeAskSize, closeBidSize);
+
+
+
+
+				bool con1 = openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin);
+				bool con2 = openPriceDiff / openAskPrice > premium;
+				bool con3 = openclose == "close" && closeAskPrice != 0 && closeBidPrice != 0 && (closePriceDiff != lastClosePriceDiff || closeSizeMin != lastCloseSizeMin);
+				bool con4 = closePriceDiff / closeBidPrice < premium;
+				return (con1 && con2) || (con3 && con4);
+				});
+		}
+#endif
 		if (openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin)) {
 			if (openPriceDiff / openAskPrice > premium) {
+				lock_guard<std::mutex> lock(m1);
 				openSignal = true;
+				cond_var1.notify_all();
 				printTime();
 				cout << "[Websocket][open] Premium:[" << round(openPriceDiff / openAskPrice * 100000) / 1000 << "%]" << "  Ask:[" << openAskPrice << "]  Bid:[" << openBidPrice << "]  Size:[" << openSizeMin << "]                  \n";
 			}
@@ -313,7 +387,9 @@ void get_premium() {
 		}
 		else if (openclose == "close" && closeAskPrice != 0 && closeBidPrice != 0 && (closePriceDiff != lastClosePriceDiff || closeSizeMin != lastCloseSizeMin)) {
 			if (closePriceDiff / closeBidPrice < premium) {
+				lock_guard<std::mutex> lock(m1);
 				closeSignal = true;
+				cond_var1.notify_all();
 				printTime();
 				cout << "[Websocket][close] Premium:[" << round(closePriceDiff / closeBidPrice * 100000) / 1000 << " %]" << "  Bid:[" << closeBidPrice << "]   Ask:[" << closeAskPrice << "]  Size:[" << closeSizeMin << "]                  \n";
 			}
@@ -335,10 +411,14 @@ int printBalance() {
 	//cout << ret.dump(4) << endl;
 	if (ret.contains("result")) {
 		if (!ret["result"].empty()) {
+			double totalBalance = 0;
 			for (auto& key : ret["result"].items()) {
+				totalBalance += key.value()["usdValue"].get<double>();
 				if (key.value()["total"].get<double>() != 0)
 					cout << "[FTX] Balance:              [" << key.value()["coin"].get<string>() << "] :[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
+
 			}
+			cout <<         "[FTX] Margin Balance:       [USD] :[" << totalBalance <<"]                                                                      \n";
 
 		}
 		else {
@@ -363,7 +443,7 @@ int printBalance() {
 		else {
 			for (auto& key : ret2.items()) {
 				if (key.value()["asset"].get<string>() == "BUSD") {
-					cout << "[Binance] Balance:          [" << key.value()["asset"].get<string>() << "]:[" << atof(key.value()["balance"].get<string>().c_str()) + atof(key.value()["crossUnPnl"].get<string>().c_str()) << "]" << "                                                \n";
+					cout << "[Binance] Margin Balance:   [" << key.value()["asset"].get<string>() << "]:[" << atof(key.value()["balance"].get<string>().c_str()) + atof(key.value()["crossUnPnl"].get<string>().c_str()) << "]" << "                                                \n";
 				}
 			}
 		}
@@ -381,13 +461,43 @@ int printLeverage() {
 	//cout << ret.dump(4) << endl;
 	if (ret.contains("result")) {
 		cout << "\n[FTX] Max Leverage:         [" << ret["result"]["leverage"].get<double>() << "]"<< "                                                \n";
-		cout << "[FTX] Current Leverage:     [" << ret["result"]["totalPositionSize"].get<double>()/ ret["result"]["totalAccountValue"].get<double>() << "]"<< "                                                \n\n";
+		cout << "[FTX] Current Leverage:     [" << ret["result"]["totalPositionSize"].get<double>()/ ret["result"]["totalAccountValue"].get<double>() << "]"<< "                                                \n";
 	}
 	else if (ret.contains("error")) {
 		cout << "[Error] " << ret.at("error").get<string>() << "                                                \n";
 		return -1;
 	}
 
+
+	if (mode == 2 || mode == 3) {
+		auto ret2 = binance_restClient.get_account_info();
+		//cout << ret2.dump(4) << "\n";
+		if (ret2.contains("code")) {
+			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
+			return -1;
+		}
+		else {
+			double totalPositionSize = 0;
+			double totalAccountValue = 0;
+			double maxLeverage = 0;
+			for (auto& key : ret2["positions"].items()) {
+				if (key.value()["symbol"].get<string>() == BinanceFuturesMarketName) {					
+					totalPositionSize = abs(atof(key.value()["notional"].get<string>().c_str()));
+					maxLeverage = atof(key.value()["leverage"].get<string>().c_str());
+				}
+			}
+			for (auto& key : ret2["assets"].items()) {
+				if (key.value()["asset"].get<string>() == "BUSD") {
+					totalAccountValue = atof(key.value()["marginBalance"].get<string>().c_str());
+				}
+			}
+			cout << "[Binance] Max Leverage:     [" << maxLeverage << "]\n";
+			if (totalAccountValue)
+				cout << "[Binance] Current Leverage: [" << totalPositionSize/ totalAccountValue <<"]\n\n";
+			else
+				cout << "[Binance] Current Leverage: [0]\n\n";
+		}
+	}
 	return 0;
 }
 
@@ -398,7 +508,7 @@ int printPositions() {
 			if (!ret["result"].empty()) {
 				for (auto& key : ret["result"].items()) {
 					if (key.value()["coin"].get<string>() == coin) {
-						cout << "[FTX] Spot Positions:           [" << key.value()["coin"].get<string>() << "]:     [" << key.value()["total"].get<double>() << "]" << "                                                \n";
+						cout << "[FTX] Spot Positions:       [" << key.value()["coin"].get<string>() << "]    :[" << key.value()["total"].get<double>() << "]" << "                                                \n";
 						//sPos = key.value()["total"].get<double>();
 					}
 				}
@@ -468,9 +578,23 @@ bool get_dual() {
 }
 
 
+int printInfo() {
+	if (printBalance() == -1)
+		return -1;
+
+	if (printLeverage() == -1)
+		return -1;
+
+	if (printPositions() == -1)
+		return -1;
+
+	return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.5";
+	string ver = "v0.2.6";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -548,14 +672,47 @@ int main(int argc, char* argv[])
 	}
 
 
-	if (printBalance() == -1)
+
+
+
+
+
+
+
+	if (mode == 2 || mode == 3) {
+		auto ret2 = binance_restClient.get_exchange_info();
+		//cout << ret2.dump(4) << "\n";
+		if (ret2.contains("code")) {
+			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
+			return -1;
+		}
+		else {
+			for (auto& key : ret2["symbols"].items()) {
+				if (key.value()["symbol"].get<string>() == BinanceFuturesMarketName) {
+					for (auto& key2 : key.value()["filters"].items()) {
+						if (key2.value()["filterType"].get<string>() == "MARKET_LOT_SIZE") {
+							binanceMinOrderSize = atof(key2.value()["minQty"].get<string>().c_str());
+						}
+					}
+				}
+			}
+		}
+	}
+	cout << "binanceMinOrderSize: " << binanceMinOrderSize << endl;
+
+
+	if ((mode == 2 || mode == 3) && batch_size < binanceMinOrderSize) {
+		cout << "[Binance]["<<BinanceFuturesMarketName<<"] Min Market Ortder size is ["<<binanceMinOrderSize<<"], but Batch Size["<<batch_size<<"] is too small!!\n";
+		return 0;
+	}
+
+
+
+
+
+	if (printInfo() == -1)
 		return 0;
 
-	if (printLeverage() == -1)
-		return 0;
-
-	if (printPositions() == -1)
-		return 0;
 
 	//open websocket thread
 	thread ftxWSReciveThread;
@@ -573,9 +730,17 @@ int main(int argc, char* argv[])
 	double remainSize = place_size;
 	double placed_size = 0;
 	while (true) {
+		{
+			std::unique_lock<std::mutex> lock(m1);
+			cond_var1.wait(lock, [] {return (openclose == "open" && openSignal) || (openclose == "close" && closeSignal); });
+		}
 		if (openclose == "open") {
 			if (openSignal) {
+				//balance min ordert size
 				double size = min(min(openSizeMin.load(), remainSize),batch_size);
+				if (mode == 2 || mode == 3)
+					size = max(size, binanceMinOrderSize);
+
 				future<long long> t1;
 				future<long long> t2;
 				if (mode == 1) {
@@ -633,8 +798,7 @@ int main(int argc, char* argv[])
 					cout << "[Error] Get order price failed !!"<< "                                                \n";
 					break;
 				}
-				printLeverage();
-				printPositions();
+				printInfo();
 				if (remainSize <= 0)
 					break;
 			}
@@ -643,6 +807,9 @@ int main(int argc, char* argv[])
 		else if (openclose == "close") {
 			if (closeSignal) {
 				double size = min(min(closeSizeMin.load(), remainSize),batch_size);
+				if (mode == 2 || mode == 3)
+					size = max(size, binanceMinOrderSize);
+
 				future<long long> t1;
 				future<long long> t2;
 				if (mode == 1) {
@@ -695,8 +862,7 @@ int main(int argc, char* argv[])
 					cout << "[Error] Get order price failed !!"<< "                                                \n";
 					break;
 				}
-				printLeverage();
-				printPositions();
+				printInfo();
 				if (remainSize <= 0)
 					break;
 			}
@@ -705,14 +871,11 @@ int main(int argc, char* argv[])
 			cout << "Error: please input 'open' or 'close'"<<"                                                \n";
 			return 0;
 		}
-
-		this_thread::sleep_for(chrono::nanoseconds(1));
 		//Avoid error:Do not send more then 2 orders total per 200ms
 		//this_thread::sleep_for(200ms);
 	}
 
-	printLeverage();
-	printPositions();
+	printInfo();
 
 	if (argc == 2) {
 		premiumStop = true;

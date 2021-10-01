@@ -44,6 +44,12 @@ namespace binance {
         return json::parse(response.body());
     }
 
+    json BRESTClient::get_exchange_info()
+    {
+        auto response = http_client.get("/fapi/v1/exchangeInfo", "");
+        return json::parse(response.body());
+    }
+
     json BRESTClient::get_open_orders()
     {
         auto response = http_client.get("", "");

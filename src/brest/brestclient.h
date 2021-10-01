@@ -25,6 +25,8 @@ class BRESTClient
 
     json get_account_info();
 
+    json get_exchange_info();
+
     json get_open_orders();
 
     json get_orders(std::string market, long long id);
