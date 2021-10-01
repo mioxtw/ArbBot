@@ -211,12 +211,13 @@ void ftx_ws_ticks() {
 		json j = json::parse(msg);
 		//cout << j.dump(4) << endl;
 		if (j["type"].get<string>() == "update" && j["market"].get<string>() == FTXFuturesMarketName) {
+			//lock_guard<std::mutex> lock(m2);
 			FTXFuturesBidPrice = j.at("data").at("bid").get<double>();
 			FTXFuturesAskPrice = j.at("data").at("ask").get<double>();
 			FTXFuturesBidSize = j.at("data").at("bidSize").get<double>();
 			FTXFuturesAskSize = j.at("data").at("askSize").get<double>();
 			ftxFuturesWsStart = true;
-			//cond_var2.notify_all();
+			cond_var2.notify_all();
 		} 
 		else if (j["type"].get<string>() == "update" && j["market"].get<string>() == FTXSpotMarketName) {
 			FTXSpotAskPrice = j["data"]["ask"].get<double>();
@@ -224,7 +225,7 @@ void ftx_ws_ticks() {
 			FTXSpotAskSize = j["data"]["askSize"].get<double>();
 			FTXSpotBidSize = j["data"]["bidSize"].get<double>();
 			ftxSpotWsStart = true;
-			//cond_var2.notify_all();
+			cond_var2.notify_all();
 		}
 		});
 	ftx_wsClient.connect();
@@ -255,7 +256,9 @@ void binance_ws_ticks() {
 }
 
 void get_premium() {
-#if 1
+
+
+#if 0
 	while (true) {
 		if (mode == 1 && ftxSpotWsStart && ftxFuturesWsStart)
 			break;
@@ -276,11 +279,8 @@ void get_premium() {
 			});
 	}
 #endif
-
 	while (true) {
-		if (premiumStop)
-			break;
-#if 1
+#if 0
 		if (mode == 1) {
 			openBidPrice = FTXFuturesBidPrice;
 			openAskPrice = FTXSpotAskPrice;
@@ -362,16 +362,21 @@ void get_premium() {
 
 
 				bool con1 = openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin);
-				bool con2 = openPriceDiff / openAskPrice > premium;
+				//bool con2 = openPriceDiff / openAskPrice > premium;
 				bool con3 = openclose == "close" && closeAskPrice != 0 && closeBidPrice != 0 && (closePriceDiff != lastClosePriceDiff || closeSizeMin != lastCloseSizeMin);
-				bool con4 = closePriceDiff / closeBidPrice < premium;
-				return (con1 && con2) || (con3 && con4);
+				//bool con4 = closePriceDiff / closeBidPrice < premium;
+				return con1  || con3 || premiumStop;
 				});
+		}
+
+
+		if (premiumStop) {
+			cout << "premiumThared stopped!! \n";
+			break;
 		}
 #endif
 		if (openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin)) {
 			if (openPriceDiff / openAskPrice > premium) {
-				lock_guard<std::mutex> lock(m1);
 				openSignal = true;
 				cond_var1.notify_all();
 				printTime();
@@ -387,7 +392,6 @@ void get_premium() {
 		}
 		else if (openclose == "close" && closeAskPrice != 0 && closeBidPrice != 0 && (closePriceDiff != lastClosePriceDiff || closeSizeMin != lastCloseSizeMin)) {
 			if (closePriceDiff / closeBidPrice < premium) {
-				lock_guard<std::mutex> lock(m1);
 				closeSignal = true;
 				cond_var1.notify_all();
 				printTime();
@@ -402,7 +406,7 @@ void get_premium() {
 			lastCloseSizeMin = closeSizeMin;
 		}
 
-		this_thread::sleep_for(chrono::nanoseconds(1));
+		//this_thread::sleep_for(chrono::nanoseconds(1));
 	}
 }
 
@@ -594,7 +598,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.7";
+	string ver = "v0.2.8";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -698,7 +702,8 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-	cout << "binanceMinOrderSize: " << binanceMinOrderSize << endl;
+
+	cout << "[Binance] Min Order Size:   [" << binanceMinOrderSize << "]                                        \n\n";
 
 
 	if ((mode == 2 || mode == 3) && batch_size < binanceMinOrderSize) {
@@ -879,6 +884,7 @@ int main(int argc, char* argv[])
 
 	if (argc == 2) {
 		premiumStop = true;
+		cond_var2.notify_all();
 		ftx_wsClient.close();
 		if (mode == 2 || mode == 3)
 			binance_wsClient.close();
