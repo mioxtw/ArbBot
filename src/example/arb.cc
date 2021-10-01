@@ -481,7 +481,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.9";
+	string ver = "v0.2.10";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -584,19 +584,14 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
+
+		cout << "[Binance] Min Order Size:   [" << BinanceFuturesMarketName << "]:[" << binanceMinOrderSize << "] \n\n";
+
+		if (batch_size < binanceMinOrderSize) {
+			cout << "[Binance][" << BinanceFuturesMarketName << "] Min Market Ortder size is [" << binanceMinOrderSize << "], but Batch Size[" << batch_size << "] is too small!!\n";
+			return 0;
+		}
 	}
-
-	cout << "[Binance] Min Order Size:   [" << BinanceFuturesMarketName << "]:[" << binanceMinOrderSize << "] \n\n";
-
-
-	if ((mode == 2 || mode == 3) && batch_size < binanceMinOrderSize) {
-		cout << "[Binance]["<<BinanceFuturesMarketName<<"] Min Market Ortder size is ["<<binanceMinOrderSize<<"], but Batch Size["<<batch_size<<"] is too small!!\n";
-		return 0;
-	}
-
-
-
-
 
 	if (printInfo() == -1)
 		return 0;
