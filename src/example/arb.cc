@@ -594,7 +594,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.6";
+	string ver = "v0.2.7";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -643,11 +643,11 @@ int main(int argc, char* argv[])
 
 
 	if (mode == 1)
-		cout << "Hedge Mode:                 [1] FTX Spot["<< FTXSpotMarketName<<"] / FTX Futures["<< FTXFuturesMarketName<<"]\n\n";
+		cout << "Hedge Mode:                 [1] FTX Futures["<< FTXFuturesMarketName <<"] / FTX Spot["<< FTXSpotMarketName <<"]\n\n";
 	else if (mode == 2)
-		cout << "Hedge Mode:                 [2] FTX Spot[" << FTXSpotMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n\n";
+		cout << "Hedge Mode:                 [2] Binance Futures[" << BinanceFuturesMarketName << "] / FTX Spot[" << FTXSpotMarketName << "]\n\n";
 	else if (mode == 3)
-		cout << "Hedge Mode:                 [3] FTX Futures[" << FTXFuturesMarketName << "] / Binance Futures[" << BinanceFuturesMarketName << "]\n\n";
+		cout << "Hedge Mode:                 [3] Binance Futures[" << BinanceFuturesMarketName << "] / FTX Futures[" << FTXFuturesMarketName << "]\n\n";
 	else
 		return 0;
 
