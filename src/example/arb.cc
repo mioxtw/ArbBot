@@ -550,23 +550,16 @@ int main(int argc, char* argv[])
 	}
 
 	binance_restClient.set_apikey(binance_api_key, binance_api_secret, "");
-	ftx_restClient.set_apikey(ftx_api_key, ftx_api_secret, ftx_subaccount);
-
-	binanceDualSide = get_dual();
-	if (binanceDualSide) {
-		cout << "[Binacne] Current Position Mode is Hesge Mode. Please change to One-way Mode.";
-		return 0;
-	}
-
-
-
-
-
-
-
-
 
 	if (mode == 2 || mode == 3) {
+		ftx_restClient.set_apikey(ftx_api_key, ftx_api_secret, ftx_subaccount);
+
+		binanceDualSide = get_dual();
+		if (binanceDualSide) {
+			cout << "[Binacne] Current Position Mode is Hesge Mode. Please change to One-way Mode.";
+			return 0;
+		}
+
 		auto ret2 = binance_restClient.get_exchange_info();
 		//cout << ret2.dump(4) << "\n";
 		if (ret2.contains("code")) {
