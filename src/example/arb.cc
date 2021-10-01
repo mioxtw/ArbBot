@@ -211,7 +211,6 @@ void ftx_ws_ticks() {
 		json j = json::parse(msg);
 		//cout << j.dump(4) << endl;
 		if (j["type"].get<string>() == "update" && j["market"].get<string>() == FTXFuturesMarketName) {
-			//lock_guard<std::mutex> lock(m2);
 			FTXFuturesBidPrice = j.at("data").at("bid").get<double>();
 			FTXFuturesAskPrice = j.at("data").at("ask").get<double>();
 			FTXFuturesBidSize = j.at("data").at("bidSize").get<double>();
@@ -256,19 +255,6 @@ void binance_ws_ticks() {
 }
 
 void get_premium() {
-
-
-#if 0
-	while (true) {
-		if (mode == 1 && ftxSpotWsStart && ftxFuturesWsStart)
-			break;
-		else if (mode == 2 && ftxSpotWsStart && binanceFuturesWsStart)
-			break;
-		else if (mode == 3 && ftxFuturesWsStart && binanceFuturesWsStart)
-			break;
-		this_thread::sleep_for(chrono::nanoseconds(1));
-	}
-#else
 	{
 		std::unique_lock<std::mutex> lock(m2);
 		cond_var2.wait(lock, [] {
@@ -278,46 +264,7 @@ void get_premium() {
 			return con1 || con2 || con3;
 			});
 	}
-#endif
 	while (true) {
-#if 0
-		if (mode == 1) {
-			openBidPrice = FTXFuturesBidPrice;
-			openAskPrice = FTXSpotAskPrice;
-			openBidSize = FTXFuturesBidSize;
-			openAskSize = FTXSpotAskSize;
-			closeAskPrice = FTXFuturesAskPrice;
-			closeBidPrice = FTXSpotBidPrice;
-			closeAskSize = FTXFuturesAskSize;
-			closeBidSize = FTXSpotBidSize;
-		}
-		else if (mode == 2) {
-			openBidPrice = BinanceFuturesBidPrice;
-			openAskPrice = FTXSpotAskPrice;
-			openBidSize = BinanceFuturesBidSize;
-			openAskSize = FTXSpotAskSize;
-			closeAskPrice = BinanceFuturesAskPrice;
-			closeBidPrice = FTXSpotBidPrice;
-			closeAskSize = BinanceFuturesAskSize;
-			closeBidSize = FTXSpotBidSize;
-		}
-		else if (mode == 3) {
-			openBidPrice = BinanceFuturesBidPrice;
-			openAskPrice = FTXFuturesAskPrice;
-			openBidSize = BinanceFuturesBidSize;
-			openAskSize = FTXFuturesAskSize;
-			closeAskPrice = BinanceFuturesAskPrice;
-			closeBidPrice = FTXFuturesBidPrice;
-			closeAskSize = BinanceFuturesAskSize;
-			closeBidSize = FTXFuturesBidSize;
-		}
-
-		openPriceDiff = openBidPrice - openAskPrice;
-		closePriceDiff = closeAskPrice - closeBidPrice;
-		openSizeMin = min(openBidSize, openAskSize);
-		closeSizeMin = min(closeAskSize, closeBidSize);
-
-#else
 		{
 			std::unique_lock<std::mutex> lock(m2);
 			cond_var2.wait(lock, [] {
@@ -358,9 +305,6 @@ void get_premium() {
 				openSizeMin = min(openBidSize, openAskSize);
 				closeSizeMin = min(closeAskSize, closeBidSize);
 
-
-
-
 				bool con1 = openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin);
 				//bool con2 = openPriceDiff / openAskPrice > premium;
 				bool con3 = openclose == "close" && closeAskPrice != 0 && closeBidPrice != 0 && (closePriceDiff != lastClosePriceDiff || closeSizeMin != lastCloseSizeMin);
@@ -369,12 +313,11 @@ void get_premium() {
 				});
 		}
 
-
 		if (premiumStop) {
-			cout << "premiumThared stopped!! \n";
+			//cout << "premiumThared stopped!! \n";
 			break;
 		}
-#endif
+
 		if (openclose == "open" && openBidPrice != 0 && openAskPrice != 0 && openSizeMin != 0 && (openPriceDiff != lastOpenPriceDiff || openSizeMin != lastOpenSizeMin)) {
 			if (openPriceDiff / openAskPrice > premium) {
 				openSignal = true;
@@ -405,170 +348,7 @@ void get_premium() {
 			lastClosePriceDiff = closePriceDiff;
 			lastCloseSizeMin = closeSizeMin;
 		}
-
-		//this_thread::sleep_for(chrono::nanoseconds(1));
 	}
-}
-
-int printBalance() {
-	auto ret = ftx_restClient.get_balances();
-	//cout << ret.dump(4) << endl;
-	if (ret.contains("result")) {
-		if (!ret["result"].empty()) {
-			double totalBalance = 0;
-			for (auto& key : ret["result"].items()) {
-				totalBalance += key.value()["usdValue"].get<double>();
-				if (key.value()["total"].get<double>() != 0)
-					cout << "[FTX] Balance:              [" << key.value()["coin"].get<string>() << "] :[" << key.value()["total"].get<double>() << "]"<< "                                                \n";
-
-			}
-			cout <<         "[FTX] Margin Balance:       [USD] :[" << totalBalance <<"]                                                                      \n";
-
-		}
-		else {
-			cout << "[Error] Please deposit USD or USDT !!"<< "                                                \n";
-			return -1;
-		}
-
-	}
-	else if (ret.contains("error")) {
-		cout << "[Error] " << ret.at("error").get<string>() << "                                                \n";
-		return -1;
-	}
-
-
-	if (mode == 2 || mode == 3) {
-		auto ret2 = binance_restClient.get_balances();
-		//cout << ret2.dump(4) << "\n";
-		if (ret2.contains("code")) {
-			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
-			return -1;
-		}
-		else {
-			for (auto& key : ret2.items()) {
-				if (key.value()["asset"].get<string>() == "BUSD") {
-					cout << "[Binance] Margin Balance:   [" << key.value()["asset"].get<string>() << "]:[" << atof(key.value()["balance"].get<string>().c_str()) + atof(key.value()["crossUnPnl"].get<string>().c_str()) << "]" << "                                                \n";
-				}
-			}
-		}
-	}
-
-
-
-
-
-	return 0;
-}
-
-int printLeverage() {
-	auto ret = ftx_restClient.get_account_info();
-	//cout << ret.dump(4) << endl;
-	if (ret.contains("result")) {
-		cout << "\n[FTX] Max Leverage:         [" << ret["result"]["leverage"].get<double>() << "]"<< "                                                \n";
-		cout << "[FTX] Current Leverage:     [" << ret["result"]["totalPositionSize"].get<double>()/ ret["result"]["totalAccountValue"].get<double>() << "]"<< "                                                \n";
-	}
-	else if (ret.contains("error")) {
-		cout << "[Error] " << ret.at("error").get<string>() << "                                                \n";
-		return -1;
-	}
-
-
-	if (mode == 2 || mode == 3) {
-		auto ret2 = binance_restClient.get_account_info();
-		//cout << ret2.dump(4) << "\n";
-		if (ret2.contains("code")) {
-			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
-			return -1;
-		}
-		else {
-			double totalPositionSize = 0;
-			double totalAccountValue = 0;
-			double maxLeverage = 0;
-			for (auto& key : ret2["positions"].items()) {
-				if (key.value()["symbol"].get<string>() == BinanceFuturesMarketName) {					
-					totalPositionSize = abs(atof(key.value()["notional"].get<string>().c_str()));
-					maxLeverage = atof(key.value()["leverage"].get<string>().c_str());
-				}
-			}
-			for (auto& key : ret2["assets"].items()) {
-				if (key.value()["asset"].get<string>() == "BUSD") {
-					totalAccountValue = atof(key.value()["marginBalance"].get<string>().c_str());
-				}
-			}
-			cout << "[Binance] Max Leverage:     [" << maxLeverage << "]\n";
-			if (totalAccountValue)
-				cout << "[Binance] Current Leverage: [" << totalPositionSize/ totalAccountValue <<"]\n\n";
-			else
-				cout << "[Binance] Current Leverage: [0]\n\n";
-		}
-	}
-	return 0;
-}
-
-int printPositions() {
-	if (mode == 1 || mode == 2) {
-		auto ret = ftx_restClient.get_balances();
-		if (ret.contains("result")) {
-			if (!ret["result"].empty()) {
-				for (auto& key : ret["result"].items()) {
-					if (key.value()["coin"].get<string>() == coin) {
-						cout << "[FTX] Spot Positions:       [" << key.value()["coin"].get<string>() << "]    :[" << key.value()["total"].get<double>() << "]" << "                                                \n";
-						//sPos = key.value()["total"].get<double>();
-					}
-				}
-			}
-			else {
-				cout << "[Error] Please deposit USD or USDT !!" << "                                                \n";
-				return -1;
-			}
-		}
-		else if (ret.contains("error")) {
-			cout << "[Error] " << ret.at("error").get<string>() << "                                                \n";
-			return -1;
-		}
-	}
-
-	if (mode == 1 || mode == 3) {
-		auto ret2 = ftx_restClient.get_account_info();
-		//cout << ret2.dump(4) << "\n";
-		if (ret2.contains("result")) {
-			for (auto& key : ret2["result"]["positions"].items()) {
-				if (key.value()["future"].get<string>() == FTXFuturesMarketName) {
-					cout << "[FTX] Futures Positions:    [" << key.value()["future"].get<string>() << "]:[" << key.value()["netSize"].get<double>() << "]" << "                                                \n";
-					//fPos = key.value()["netSize"].get<double>();
-				}
-			}
-		}
-		else if (ret2.contains("error")) {
-			cout << "[Error] " << ret2.at("error").get<string>() << "                                                \n";
-			return -1;
-		}
-	}
-
-	if (mode == 2 || mode == 3) {
-		auto ret2 = binance_restClient.get_position(BinanceFuturesMarketName);
-		//cout << ret2.dump(4) << "\n";
-		if (ret2.contains("code")) {
-			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
-			return -1;
-		}
-		else {
-			for (auto& key : ret2.items()) {
-				if (binanceDualSide) {
-					if (key.value()["positionSide"].get<string>() == "SHORT") {
-						cout << "[Binance] Futures Positions:[" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
-						//fPos = atof(key.value()["positionAmt"].get<string>().c_str());
-					}
-				}
-				else {
-					cout << "[Binance] Futures Positions:[" << key.value()["symbol"].get<string>() << "]:[" << key.value()["positionAmt"].get<string>() << "]" << "                                                \n\n";
-					//fPos = atof(key.value()["positionAmt"].get<string>().c_str());
-				}
-			}
-		}
-	}
-
-	return 0;
 }
 
 bool get_dual() {
@@ -583,14 +363,117 @@ bool get_dual() {
 
 
 int printInfo() {
-	if (printBalance() == -1)
-		return -1;
 
-	if (printLeverage() == -1)
-		return -1;
+	double ftx_margin_balance = 0;
+	double binance_margin_balance = 0;
 
-	if (printPositions() == -1)
+	double ftx_max_leverage = 0;
+	double ftx_current_leverage = 0;
+	double binance_max_leverage = 0;
+	double binance_current_leverage = 0;
+
+	double ftx_spot_position = 0;
+	double ftx_futures_position = 0;
+	double binance_futures_position = 0;
+
+
+	//FTX Balance
+	auto ret = ftx_restClient.get_balances();
+	//cout << ret.dump(4) << endl;
+	if (ret.contains("result")) {
+		if (!ret["result"].empty()) {
+			for (auto& key : ret["result"].items()) {
+				ftx_margin_balance += key.value()["usdValue"].get<double>();
+				if (key.value()["total"].get<double>() != 0)
+					cout << "[FTX] Balance:              [" << key.value()["coin"].get<string>() << "] :[" << key.value()["total"].get<double>() << "]" << "                                                \n";
+				if (key.value()["coin"].get<string>() == coin)
+					ftx_spot_position = key.value()["total"].get<double>();					
+			}
+			cout << "[FTX] Margin Balance:       [USD] :[" << ftx_margin_balance << "]                                                                      \n";
+
+		}
+		else {
+			cout << "[Error] Please deposit USD or USDT !!" << "                                                \n";
+			return -1;
+		}
+
+	}
+	else if (ret.contains("error")) {
+		cout << "[Error] " << ret["error"].get<string>() << "                                                \n";
 		return -1;
+	}
+
+
+
+	//Binance Balance and Leverage and position
+	if (mode == 2 || mode == 3) {
+		auto ret2 = binance_restClient.get_account_info();
+		//cout << ret2.dump(4) << "\n";
+		if (ret2.contains("code")) {
+			cout << "[Error] [" << ret2["code"].get<int>() << "] " << ret2["msg"].get<string>() << "                                           \n";
+			return -1;
+		}
+		else {
+			double totalPositionSize = 0;
+			for (auto& key : ret2["positions"].items()) {
+				if (key.value()["symbol"].get<string>() == BinanceFuturesMarketName) {
+					totalPositionSize = abs(atof(key.value()["notional"].get<string>().c_str()));
+					binance_max_leverage = atof(key.value()["leverage"].get<string>().c_str());
+					binance_futures_position = atof(key.value()["positionAmt"].get<string>().c_str());
+				}
+			}
+			for (auto& key : ret2["assets"].items()) {
+
+				if (key.value()["asset"].get<string>() == "BUSD") {
+					binance_margin_balance = atof(key.value()["marginBalance"].get<string>().c_str());
+					cout << "[Binance] Margin Balance:   [BUSD]:[" << binance_margin_balance << "]" << "                                                \n";
+				}
+			}
+			if (binance_margin_balance)
+				binance_current_leverage = totalPositionSize / binance_margin_balance;
+		}
+	}
+
+	//FTX Leverage and futures position
+	auto ret3 = ftx_restClient.get_account_info();
+	//cout << ret3.dump(4) << endl;
+	if (ret3.contains("result")) {
+		ftx_max_leverage = ret3["result"]["leverage"].get<double>();
+		ftx_current_leverage = ret3["result"]["totalPositionSize"].get<double>() / ret3["result"]["totalAccountValue"].get<double>();
+		cout << "\n[FTX] Max Leverage:         [" << ftx_max_leverage << "]" << "                                                \n";
+		cout << "[FTX] Current Leverage:     [" << ftx_current_leverage << "]" << "                                                \n";
+
+		for (auto& key : ret3["result"]["positions"].items()) {
+			if (key.value()["future"].get<string>() == FTXFuturesMarketName)
+				ftx_futures_position = key.value()["netSize"].get<double>();
+		}
+
+	}
+	else if (ret3.contains("error")) {
+		cout << "[Error] " << ret3["error"].get<string>() << "                                                \n";
+		return -1;
+	}
+
+	//Binance Leverage
+	if (mode == 2 || mode == 3) {
+		cout << "[Binance] Max Leverage:     [" << binance_max_leverage << "]\n";
+		if (binance_margin_balance)
+			cout << "[Binance] Current Leverage: [" << binance_current_leverage << "]\n\n";
+		else
+			cout << "[Binance] Current Leverage: [0]\n\n";
+	}
+
+	//FTX Spot position
+	if (mode == 1 || mode == 2)
+		cout << "[FTX] Spot Positions:       [" << coin << "]    :[" << ftx_spot_position << "]" << "                                                \n";
+
+	//FTX Futures position
+	if (mode == 1 || mode == 3)
+		cout << "[FTX] Futures Positions:    [" << FTXFuturesMarketName << "]:[" << ftx_futures_position << "]" << "                                                \n";
+
+	//Binance Futures position
+	if (mode == 2 || mode == 3)
+		cout << "[Binance] Futures Positions:[" << BinanceFuturesMarketName << "]:[" << binance_futures_position << "]" << "                                                \n\n";
 
 	return 0;
 }
@@ -598,7 +481,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.8";
+	string ver = "v0.2.9";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -703,7 +586,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	cout << "[Binance] Min Order Size:   [" << binanceMinOrderSize << "]                                        \n\n";
+	cout << "[Binance] Min Order Size:   [" << BinanceFuturesMarketName << "]:[" << binanceMinOrderSize << "] \n\n";
 
 
 	if ((mode == 2 || mode == 3) && batch_size < binanceMinOrderSize) {
@@ -774,9 +657,6 @@ int main(int argc, char* argv[])
 				cout << "======================================================================="<< "                                                \n";
 
 
-
-
-				//太快查order ID，average price會拿到null，所以sleep一下再查
 				this_thread::sleep_for(1000ms);
 				double shortPrice;
 				double buyPrice;
