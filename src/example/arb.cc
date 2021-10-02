@@ -481,7 +481,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.10";
+	string ver = "v0.2.11";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -614,8 +614,11 @@ int main(int argc, char* argv[])
 			if (openSignal) {
 				//balance min ordert size
 				double size = min(min(openSizeMin.load(), remainSize),batch_size);
-				if (mode == 2 || mode == 3)
-					size = max(size, binanceMinOrderSize);
+				if (mode == 2 || mode == 3) {
+					if (size == remainSize && size < binanceMinOrderSize)
+						break;
+					size = size - fmod(size,binanceMinOrderSize);
+				}
 
 				future<long long> t1;
 				future<long long> t2;
@@ -672,6 +675,7 @@ int main(int argc, char* argv[])
 					break;
 				}
 				printInfo();
+
 				if (remainSize <= 0)
 					break;
 			}
@@ -680,8 +684,11 @@ int main(int argc, char* argv[])
 		else if (openclose == "close") {
 			if (closeSignal) {
 				double size = min(min(closeSizeMin.load(), remainSize),batch_size);
-				if (mode == 2 || mode == 3)
-					size = max(size, binanceMinOrderSize);
+				if (mode == 2 || mode == 3) {
+					if (size == remainSize && size < binanceMinOrderSize)
+						break;
+					size = size - fmod(size, binanceMinOrderSize);
+				}
 
 				future<long long> t1;
 				future<long long> t2;
@@ -735,7 +742,9 @@ int main(int argc, char* argv[])
 					cout << "[Error] Get order price failed !!"<< "                                                \n";
 					break;
 				}
+
 				printInfo();
+
 				if (remainSize <= 0)
 					break;
 			}
