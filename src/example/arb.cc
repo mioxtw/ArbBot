@@ -481,7 +481,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.12";
+	string ver = "v0.2.13";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -618,6 +618,8 @@ int main(int argc, char* argv[])
 				if (mode == 2 || mode == 3) {
 					if (size == remainSize && size < binanceMinOrderSize)
 						break;
+					if (size < binanceMinOrderSize)
+						continue;
 					size = size - fmod(size,binanceMinOrderSize);
 				}
 
@@ -688,6 +690,8 @@ int main(int argc, char* argv[])
 				if (mode == 2 || mode == 3) {
 					if (size == remainSize && size < binanceMinOrderSize)
 						break;
+					if (size < binanceMinOrderSize)
+						continue;
 					size = size - fmod(size, binanceMinOrderSize);
 				}
 
