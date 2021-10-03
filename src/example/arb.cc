@@ -481,7 +481,7 @@ int printInfo() {
 
 int main(int argc, char* argv[])
 {
-	string ver = "v0.2.11";
+	string ver = "v0.2.12";
 	cout << "\n";
 	cout << "--------------------------------------------------------\n";
 	cout << " [Master Mio] ArbBot " << ver << "\n";
@@ -515,6 +515,7 @@ int main(int argc, char* argv[])
 		binance_api_key = config["binance-api-key"].get<string>();
 		binance_api_secret = config["binance-api-secret"].get<string>();
 
+		cout << "[FTX] SubAccount Name:      [" << ftx_subaccount << "]\n";
 		cout << "Open/Close positions:       [" << openclose << "]\n";
 		cout << "Size:                       [" << place_size << "]\n";
 		cout << "Premium:                    [" << premium*100 << " %]\n";
