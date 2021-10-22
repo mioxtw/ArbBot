@@ -1,6 +1,6 @@
 ﻿{
-  "//comment1": "mode:1 FTX Futures/FTX Spot  mode:2 Binance Futures/FTX Spot  mode:3 Binance Futures/FTX Spot",
-  "mode": 3,
+  "//comment1": "mode:1 FTX Futures/FTX Spot  mode:2 Binance Futures/FTX Spot  mode:3 Binance Futures/FTX Futures",
+  "mode": 1,
   "ftx-futuresMarketName": "FTT-PERP",
   "ftx-spotMarketName": "FTT/USD",
   "binance-futuresMarketName": "FTTBUSD",
